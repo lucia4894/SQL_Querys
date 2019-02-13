@@ -1,0 +1,62 @@
+select * from DB_CIMA.LVL_STALKER_NEGOCIO_012019;
+select count(*) from DB_CIMA.LVL_STALKER_NEGOCIO_012019;--12,776,961
+select count(distinct RUC) from DB_CIMA.LVL_STALKER_NEGOCIO_012019; --12,508,277
+select count(distinct DOCUMENTO_FINAL) from DB_CIMA.LVL_STALKER_NEGOCIO_012019; --12,508,277
+
+drop table  DB_CIMA.LVL_TASAS_012019;
+create table DB_CIMA.LVL_TASAS_012019 DISTRIBUTE BY HASH (RUC) AS
+select ruc, 
+case when CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)> 
+                  cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer) AND 
+                  deestadocontribuyente='ACTIVO' and flg_giros_rest=0 and class_global_rrll<2
+                  and pctnormal_cpp_12m=100 and pctperdida_12m=0 then 1
+
+      when CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)> 
+                  cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer) AND 
+                  deestadocontribuyente='ACTIVO' and flg_giros_rest=0 and class_global_rrll<2
+                  and pctnormal_cpp_12m is null and pctperdida_12m=0 then 1
+
+      when CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)> 
+                  cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer) AND 
+                  deestadocontribuyente='ACTIVO' and flg_giros_rest=0 and class_global_rrll<2
+                  and pctnormal_cpp_12m=100 and pctperdida_12m is null then 1
+
+      when CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)> 
+                  cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer) AND 
+                  deestadocontribuyente='ACTIVO' and flg_giros_rest=0 and class_global_rrll<2
+                  and pctnormal_cpp_12m is null and pctperdida_12m is null then 1 else 0 end PASA_FILTROS,
+                  
+case when pctnormal_12m=100 and class_global_rrll<1                                           then 25
+      when pctnormal_12m=100 and class_global_rrll=1                                          then 35
+     when pctnormal_cpp_12m=100 and pctnormal_12m<100 and class_global_rrll<1                 then 40
+     when pctnormal_cpp_12m=100 and pctnormal_12m<100 and  class_global_rrll=1                then 45
+     when pctnormal_cpp_12m is null and class_global_rrll<1                                   then 30
+     when pctnormal_cpp_12m is null and class_global_rrll=1                                   then 40
+     when pctnormal_cpp_12m is null and class_global_rrll<0		                              then 30 
+     else null end TASA
+FROM DB_CIMA.LVL_STALKER_NEGOCIO_012019
+where fechainiciactividades is not null and fechainiciactividades<>'-';
+
+DROP TABLE DB_CIMA.LVL_VISAHIST_TASA_012019;
+CREATE TABLE DB_CIMA.LVL_VISAHIST_TASA_012019 DISTRIBUTE BY HASH (RUC) AS
+select DISTINCT A.*
+from db_cima.lvl_tasas_012019 A
+inner join ibdwhpg.ld_visa_hist B on A.RUC=B.RUC;
+
+SELECT COUNT(*)
+FROM DB_CIMA.LVL_VISAHIST_TASA_012019;
+
+
+SELECT PASA_FILTROS, COUNT(DISTINCT RUC)
+FROM db_cima.lvl_visahist_tasa_012019
+GROUP BY PASA_FILTROS;
+
+SELECT COUNT(*) FROM db_cima.lvl_tasas_012019; 
+SELECT COUNT(DISTINCT RUC) FROM db_cima.lvl_tasas_012019;
+
+SELECT CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)> 
+       cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer),
+       fechainiciactividades, cast(substr(fechainiciactividades,7,4)||substr(fechainiciactividades,4,2) as integer),
+       CAST(TO_CHAR(CURRENT_DATE -370,'YYYYMM') AS INTEGER)
+FROM DB_CIMA.LVL_STALKER_NEGOCIO_012019
+where fechainiciactividades is not null and fechainiciactividades<>'-';
